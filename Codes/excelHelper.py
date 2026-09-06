@@ -339,7 +339,7 @@ def _apply_update(wb, context, dataDic):
                 ws = wb.create_sheet(title=target_sheet_name)
             ws.cell(row=1, column=cfg.num_clients + 1).value = int(value)
 
-        # ---------- LEGACY TOTAL SIZE SHEETS ----------
+        # ---------- LEGACY TOTAL SIZE SHEETS (server-wide totals) ----------
         elif sheet_str.__contains__("totalSize"):
             target_sheet_name = sheet_str  # uses the key itself as sheet name
             if target_sheet_name in wb.sheetnames:
@@ -347,7 +347,7 @@ def _apply_update(wb, context, dataDic):
             else:
                 ws = wb.create_sheet(title=target_sheet_name)
 
-            ws.cell(row=1, column=cfg.currentEdge + 1).value = value
+            ws.cell(row=1, column=cfg.num_clients + 1).value = value
 
         # ---------- SENSITIVITY SCORE SHEET ----------
         elif sheet_str.__contains__("sensitivityScore"):
@@ -457,6 +457,8 @@ def combineExcels(cfg: Config, baseAddr, targetSaveAddr, sheetList, newDataDic=N
             ws_result.cell(row=1, column=1).value = "Round"
             ws_result.cell(row=1, column=2).value = "Global Test Accuracy"
             ws_result.freeze_panes = "A2"
+        elif str(sheet_name).__contains__("totalSize"):
+            ws_result.cell(row=1, column=1, value="Server")
         else:
             for client_index in range(cfg.num_clients):
                 ws_result.cell(1, client_index + 1, "Client %d" % (client_index + 1))
@@ -524,10 +526,17 @@ def combineExcels(cfg: Config, baseAddr, targetSaveAddr, sheetList, newDataDic=N
                         ).value = ws.cell(row=row_index, column=2).value
                         resultRowCount[shIndex] += 1
 
+                elif str(sheetName).__contains__("totalSize"):
+                    ws = wb[sheetName]
+                    ws_result = wb_result[sheetName]
+                    ws_result.cell(
+                        row=resultRowCount[shIndex], column=1
+                    ).value = ws.cell(row=1, column=cfg.num_clients + 1).value
+                    resultRowCount[shIndex] += 1
+
                 elif (str(sheetName) in (
                         "size_plaintext", "size_cyphertext", "size_sensitivity_map") or
-                      str(sheetName).__contains__("sensitivityScore") or
-                      str(sheetName).__contains__("totalSize")):
+                      str(sheetName).__contains__("sensitivityScore")):
                     ws = wb[sheetName]
                     ws_result = wb_result[sheetName]
                     column_count = (
